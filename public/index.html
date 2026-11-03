@@ -12,7 +12,7 @@
 :root[data-theme="dark"]{--bg:#10181d;--surf:#18242b;--ink:#e6edf1;--mute:#93a5b0;--line:#2b3b45;--acc:#6aa6d8;--accink:#0c1a24;--pr:#e2b44f;--prbg:#3a2f14;--del:#e08a77;color-scheme:dark}
 *{box-sizing:border-box}
 html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 Barlow,system-ui,-apple-system,"Segoe UI",sans-serif}
-main{max-width:520px;margin:0 auto;padding:16px 16px 48px}
+main{width:100%;margin:0;padding:16px clamp(12px,3vw,40px) 48px;min-height:100dvh}
 header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
 h1{font:700 34px/1 "Barlow Condensed","Arial Narrow",sans-serif;margin:0}
 h3{margin:0;font-size:17px;font-weight:600}
@@ -55,6 +55,18 @@ details p{margin:4px 0}
 svg{width:100%;height:auto;display:block}
 .day small{color:var(--mute)}
 .ex{margin:6px 0 0}
+.skip,.skip b{color:#c62828}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .skip,:root:not([data-theme="light"]) .skip b{color:#ff7b72}}
+:root[data-theme="dark"] .skip,:root[data-theme="dark"] .skip b{color:#ff7b72}
+.flag{border-color:#c62828}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .flag{border-color:#ff7b72}}
+:root[data-theme="dark"] .flag{border-color:#ff7b72}
+#wbody,#hbody,#rbody,#rlist{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,340px),1fr));gap:12px;align-items:start}
+#wbody>.panel,#hbody>.panel,#rbody>.panel,#rlist>.panel{margin-bottom:0}
+#wbody>.empty,#hbody>.empty,#rlist>.empty,#rlist>.stats,#rbody>#addr,#rbody>.panel:nth-last-child(-n+2){grid-column:1/-1}
+#rbody>.panel:nth-last-child(-n+2),#rbody>#addr{margin-top:0!important}
+svg{max-height:60vh}
+@media (min-width:900px){#runs{display:grid;grid-template-columns:minmax(300px,380px) 1fr;gap:16px;align-items:start}#runs>#rlist{margin-top:0!important}}
 .toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:999px;font-weight:600;opacity:0;pointer-events:none;transition:opacity .2s}
 .toast.on{opacity:1}
 [hidden]{display:none!important}
@@ -138,18 +150,27 @@ function setTab(t){tab=t;
   document.querySelectorAll('.tabs button').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.t===t)));
   ['work','plan','prog','hist','runs'].forEach(id=>$('#'+id).hidden=id!==t);render()}
 
+function owed(r){
+  const today=dkey(Date.now()),L=S.log.filter(l=>l.rid===r.id);
+  const prev=L.map(l=>dkey(l.t)).filter(k=>k<today).sort();
+  if(!prev.length)return new Set();
+  const last=prev[prev.length-1],p=last.split('-').map(Number),end=new Date(p[0],p[1]-1,p[2]+1).getTime();
+  const did=new Set(L.filter(l=>dkey(l.t)===last).map(l=>l.eid));
+  return new Set(r.ex.filter(e=>!did.has(e.id)&&e.hist&&e.hist[0]&&e.hist[0].t<end&&!L.some(l=>l.eid===e.id&&dkey(l.t)===today)).map(e=>e.id));
+}
 function lastDone(rid){const l=S.log.filter(s=>s.rid===rid);if(!l.length)return '';return ' ('+new Date(Math.max(...l.map(s=>s.t))).toLocaleDateString(undefined,{month:'short',day:'numeric'})+')'}
 function renderWork(){
   $('#rts').innerHTML=S.routines.map(r=>'<button data-rt="'+r.id+'" aria-pressed="'+(r.id===S.cur)+'">'+esc(r.name)+lastDone(r.id)+'</button>').join('');
   const r=byId(S.cur),today=dkey(Date.now());
   if(!r.ex.length){$('#wbody').innerHTML='<p class="empty">No exercises in this routine yet. Add them under Routines, with sets, reps, weight and machine settings.</p>';return}
+  const ow=owed(r);
   $('#wbody').innerHTML=r.ex.map(e=>{
     const done=S.log.filter(l=>l.eid===e.id&&dkey(l.t)===today),last=done[done.length-1];
     const w0=last?fmt(cv(last)):fmt(cv(e)),r0=last?last.r:e.reps;
     let rows=done.map((s,i)=>'<div class="set"><span class="n">✓</span><span class="v">'+(s.n||1)+' × '+s.r+' at '+fmt(cv(s))+' '+S.unit+'</span>'+(s.pr?'<span class="badge">PR</span>':'')+'<button class="x" data-del="'+s.id+'" aria-label="Undo completion">Undo</button></div>').join('');
     const left=done.length?0:1;
     for(let i=0;i<left;i++)rows+='<div class="set" data-e="'+e.id+'"><input class="sw" type="number" inputmode="decimal" step="any" value="'+w0+'" aria-label="Weight"><span>×</span><input class="sr" type="number" inputmode="numeric" value="'+r0+'" aria-label="Reps"><button class="lg">Mark done</button></div>';
-    return '<div class="panel"><h3>'+esc(e.name||'Untitled exercise')+'</h3><div class="tgt">Target '+e.sets+' × '+e.reps+' at '+fmt(cv(e))+' '+S.unit+'</div>'+(e.machine?'<span class="pill">'+esc(e.machine)+'</span>':'')+rows+(last?'<button class="lnk" data-adopt="'+e.id+'">Use today’s numbers as new target</button>':'')+'</div>';
+    return '<div class="panel'+(ow.has(e.id)?' flag':'')+'"><h3'+(ow.has(e.id)?' class="skip"':'')+'>'+esc(e.name||'Untitled exercise')+(ow.has(e.id)?' (skipped last time)':'')+'</h3><div class="tgt">Target '+e.sets+' × '+e.reps+' at '+fmt(cv(e))+' '+S.unit+'</div>'+(e.machine?'<span class="pill">'+esc(e.machine)+'</span>':'')+rows+(last?'<button class="lnk" data-adopt="'+e.id+'">Use today’s numbers as new target</button>':'')+'</div>';
   }).join('');
 }
 
@@ -181,13 +202,23 @@ function renderProg(){
 }
 
 function renderHist(){
-  if(!S.log.length){$('#hbody').innerHTML='<p class="empty">Nothing logged yet. Your workouts will show up here by day.</p>';return}
-  const days={};S.log.forEach(s=>(days[dkey(s.t)]=days[dkey(s.t)]||[]).push(s));
-  $('#hbody').innerHTML=Object.keys(days).sort().reverse().map(k=>{
-    const ss=days[k],vol=ss.reduce((a,s)=>a+cv(s)*s.r*(s.n||1),0),g={};ss.forEach(s=>(g[s.ex]=g[s.ex]||[]).push(s));
-    const rn=[...new Set(ss.map(s=>byId(s.rid)&&byId(s.rid).name).filter(Boolean))].join(', ');
-    return '<div class="panel day"><h3>'+new Date(ss[0].t).toLocaleDateString(undefined,{weekday:'long',month:'short',day:'numeric'})+(rn?', '+esc(rn):'')+'</h3><small>'+ss.reduce((a,s)=>a+(s.n||1),0)+' sets, '+Math.round(vol).toLocaleString()+' '+S.unit+' volume</small>'+
-    Object.keys(g).map(n=>{const m=g[n][0].machine;return '<p class="ex"><b>'+esc(n)+'</b>'+(m?' ('+esc(m)+')':'')+'<br>'+g[n].map(s=>(s.n>1?s.n+' × '+s.r+' at '+fmt(cv(s)):fmt(cv(s))+' × '+s.r)+(s.pr?' (PR)':'')).join(', ')+'</p>'}).join('')+'</div>';
+  const days={},slot=k=>days[k]=days[k]||{l:[],r:[]};
+  S.log.forEach(s=>slot(dkey(s.t)).l.push(s));
+  S.runs.forEach(r=>slot(dkey(r.t)).r.push(r));
+  const keys=Object.keys(days).sort().reverse();
+  if(!keys.length){$('#hbody').innerHTML='<p class="empty">Nothing logged yet. Your workouts and runs will show up here by day.</p>';return}
+  $('#hbody').innerHTML=keys.map(k=>{
+    const ss=days[k].l,rs=days[k].r,g={};
+    ss.forEach(s=>(g[s.ex]=g[s.ex]||[]).push(s));
+    const rids=[...new Set(ss.map(s=>s.rid).filter(Boolean))].map(id=>byId(id)).filter(Boolean);
+    const sub=[];
+    if(ss.length)sub.push(ss.reduce((a,s)=>a+(s.n||1),0)+' sets, '+Math.round(ss.reduce((a,s)=>a+cv(s)*s.r*(s.n||1),0)).toLocaleString()+' '+S.unit+' volume');
+    if(rs.length)sub.push(f2(rs.reduce((a,r)=>a+r.d,0))+' mi run');
+    const rn=rids.map(r=>r.name).join(', ');
+    const date=new Date(ss.length?ss[0].t:rs[0].t).toLocaleDateString(undefined,{weekday:'long',month:'short',day:'numeric'});
+    return '<div class="panel day"><h3>'+date+(rn?', '+esc(rn):'')+'</h3><small>'+sub.join('; ')+'</small>'+
+      Object.keys(g).map(n=>{const m=g[n][0].machine;return '<p class="ex"><b>'+esc(n)+'</b>'+(m?' ('+esc(m)+')':'')+'<br>'+g[n].map(s=>(s.n>1?s.n+' \u00d7 '+s.r+' at '+fmt(cv(s)):fmt(cv(s))+' \u00d7 '+s.r)+(s.pr?' (PR)':'')).join(', ')+'</p>'}).join('')+
+      rs.map(r=>'<p class="ex"><b>Run</b><br>'+f2(r.d)+' mi in '+hms(r.s)+', '+mph(r.d,r.s).toFixed(2)+' mph, '+hms(r.s/r.d)+' per mile</p>').join('')+'</div>';
   }).join('');
 }
 
