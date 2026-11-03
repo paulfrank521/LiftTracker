@@ -101,17 +101,19 @@ const save=()=>{S.mod=Date.now();persist();sync.queue()};
 const SK='liftlog.pass';
 let pass='';try{pass=localStorage.getItem(SK)||''}catch(e){}
 const nowT=()=>new Date().toLocaleTimeString([],{hour:'numeric',minute:'2-digit'});
+const has=o=>!!o&&((o.log||[]).length>0||(o.runs||[]).length>0||(o.routines||[]).some(r=>(r.ex||[]).length>0));
 const sync={msg:'',t:null,
  st(m){this.msg=m;const el=document.getElementById('sst');if(el)el.textContent=m},
  async call(m,b){const r=await fetch('/api/sync',{method:m,headers:{'x-passcode':pass,'Content-Type':'application/json'},body:b});if(r.status===401)throw new Error('auth');if(r.status===500||r.status===404)throw new Error('setup');if(!r.ok)throw new Error('http');return m==='GET'?r.json():null},
  fail(e){this.st(e.message==='auth'?'Wrong passcode':e.message==='setup'?'Sync is not set up on this site':'Offline, will retry')},
  queue(){if(!pass)return;clearTimeout(this.t);this.t=setTimeout(()=>this.push(),1200)},
- async push(){try{await this.call('PUT',JSON.stringify(S));this.st('Synced '+nowT())}catch(e){this.fail(e)}},
+ async push(){if(!has(S))return;try{await this.call('PUT',JSON.stringify(S));this.st('Synced '+nowT())}catch(e){this.fail(e)}},
  async pull(){if(!pass)return;
   try{const d=await this.call('GET');
-   if(d&&(d.mod||0)>(S.mod||0)){S=Object.assign({unit:'lb',routines:[],log:[],runs:[],cur:null},d);if(!S.routines.length)S.routines=[{id:uid(),name:'Routine 1',ex:[]}];if(!byId(S.cur))S.cur=S.routines[0].id;persist();render();this.st('Synced '+nowT())}
-   else if((!d&&S.mod)||(d&&(d.mod||0)<(S.mod||0)))await this.push();
-   else this.st('Synced '+nowT())}catch(e){this.fail(e)}}};
+   const rm=has(d),lc=has(S);
+   if(rm&&(!lc||(d.mod||0)>(S.mod||0))){const u=S.unit,c=S.cur;S=Object.assign({unit:'lb',routines:[],log:[],runs:[],cur:null},d);S.unit=u;if(!S.routines.length)S.routines=[{id:uid(),name:'Routine 1',ex:[]}];S.cur=byId(c)?c:S.routines[0].id;persist();render();this.st('Synced '+nowT())}
+   else if(lc&&(!rm||(d.mod||0)<(S.mod||0)))await this.push();
+   else this.st(rm||lc?'Synced '+nowT():'Connected, but there is no data on this device or the server yet')}catch(e){this.fail(e)}}};
 const $=s=>document.querySelector(s);
 const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const cv=s=>s.u===S.unit||!s.u?s.w:(s.u==='lb'?s.w*0.45359237:s.w/0.45359237);
@@ -238,11 +240,11 @@ function render(){$('#unit').textContent=S.unit;({work:renderWork,plan:renderPla
 
 document.querySelectorAll('.tabs button').forEach(b=>b.addEventListener('click',()=>setTab(b.dataset.t)));
 $('#pex').addEventListener('change',e=>{pex=e.target.value;renderProg()});
-$('#unit').addEventListener('click',()=>{S.unit=S.unit==='lb'?'kg':'lb';save();render()});
+$('#unit').addEventListener('click',()=>{S.unit=S.unit==='lb'?'kg':'lb';persist();render()});
 
 $('#work').addEventListener('click',e=>{
   const t=e.target,d=t.dataset,r=byId(S.cur);
-  if(d.rt){S.cur=d.rt;save();render();return}
+  if(d.rt){S.cur=d.rt;persist();render();return}
   if(d.del){S.log=S.log.filter(s=>s.id!==d.del);save();render();toast('Set deleted');return}
   if(d.adopt){const x=r.ex.find(q=>q.id===d.adopt),l=S.log.filter(s=>s.eid===x.id&&dkey(s.t)===dkey(Date.now())).pop();
     if(l){x.w=l.w;x.u=l.u;x.reps=l.r;snap(x);save();render();toast('Target updated')}return}
