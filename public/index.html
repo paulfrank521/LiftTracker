@@ -1,0 +1,281 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Lift Log</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#e6ebee;--surf:#f6f8f9;--ink:#17252e;--mute:#586a75;--line:#cbd5db;--acc:#2a5f8f;--accink:#fff;--pr:#9a6b0c;--prbg:#f3e6c4;--del:#a6422f;color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#10181d;--surf:#18242b;--ink:#e6edf1;--mute:#93a5b0;--line:#2b3b45;--acc:#6aa6d8;--accink:#0c1a24;--pr:#e2b44f;--prbg:#3a2f14;--del:#e08a77;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#10181d;--surf:#18242b;--ink:#e6edf1;--mute:#93a5b0;--line:#2b3b45;--acc:#6aa6d8;--accink:#0c1a24;--pr:#e2b44f;--prbg:#3a2f14;--del:#e08a77;color-scheme:dark}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 Barlow,system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:520px;margin:0 auto;padding:16px 16px 48px}
+header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+h1{font:700 34px/1 "Barlow Condensed","Arial Narrow",sans-serif;margin:0}
+h3{margin:0;font-size:17px;font-weight:600}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+.unit{border:1px solid var(--line);background:var(--surf);border-radius:999px;padding:6px 14px;font-weight:600}
+.tabs{display:flex;gap:4px;background:var(--surf);border:1px solid var(--line);border-radius:12px;padding:4px;margin-bottom:16px}
+.tabs button{flex:1;border:0;background:none;padding:10px 2px;border-radius:9px;font-weight:600;font-size:14px;color:var(--mute)}
+.tabs button[aria-selected="true"]{background:var(--acc);color:var(--accink)}
+.rts{display:flex;gap:6px;overflow-x:auto;margin-bottom:14px;padding-bottom:2px}
+.rts button{flex:none;border:1px solid var(--line);background:var(--surf);border-radius:999px;padding:8px 16px;font-weight:600;white-space:nowrap}
+.rts button[aria-pressed="true"]{background:var(--acc);color:var(--accink);border-color:var(--acc)}
+.panel,.xc{background:var(--surf);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px}
+.xc{background:var(--bg);margin:12px 0 0}
+label{display:block;font-size:13px;color:var(--mute);margin:10px 0 3px}
+input[type=text],input[type=number],input[type=date],input[type=password],select{width:100%;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px;min-height:46px}
+.xc input{background:var(--surf)}
+textarea{width:100%;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px;font:13px/1.4 ui-monospace,Menlo,Consolas,monospace;color:inherit}
+.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.tgt{font:600 22px/1.2 "Barlow Condensed","Arial Narrow",sans-serif;margin:2px 0 6px}
+.pill{display:inline-block;background:var(--prbg);color:var(--pr);border-radius:8px;padding:3px 10px;font-weight:600;font-size:14px;margin-bottom:6px}
+.set{display:flex;align-items:center;gap:8px;padding:8px 0;border-top:1px solid var(--line)}
+.set .n{width:20px;color:var(--mute)}
+.set .v{font:600 22px/1 "Barlow Condensed","Arial Narrow",sans-serif;flex:1}
+.set input{width:76px;text-align:center;font:700 22px/1 "Barlow Condensed","Arial Narrow",sans-serif;padding:8px 2px}
+.lg{border:0;background:var(--acc);color:var(--accink);border-radius:10px;padding:11px 16px;font-weight:600;margin-left:auto}
+.badge{background:var(--prbg);color:var(--pr);font-size:12px;font-weight:600;border-radius:6px;padding:2px 8px}
+.x,.lnk{border:0;background:none;padding:8px 6px;font-size:14px;font-weight:600}
+.x{color:var(--del)}.lnk{color:var(--acc)}
+.add{width:100%;border:1px dashed var(--line);background:none;border-radius:12px;padding:12px;font-weight:600;margin-top:12px;color:var(--acc)}
+.acts{display:flex;gap:4px;margin-top:8px}
+details{margin-top:6px;font-size:14px;color:var(--mute)}
+details p{margin:4px 0}
+.empty{color:var(--mute);margin:0}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:12px 0}
+.stat{background:var(--surf);border:1px solid var(--line);border-radius:12px;padding:10px}
+.stat b{display:block;font:700 28px/1.1 "Barlow Condensed","Arial Narrow",sans-serif}
+.stat span{font-size:13px;color:var(--mute)}
+svg{width:100%;height:auto;display:block}
+.day small{color:var(--mute)}
+.ex{margin:6px 0 0}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:999px;font-weight:600;opacity:0;pointer-events:none;transition:opacity .2s}
+.toast.on{opacity:1}
+[hidden]{display:none!important}
+@media (prefers-reduced-motion:reduce){.toast{transition:none}}
+</style>
+</head>
+<body>
+<main>
+<header><h1>Lift Log</h1><button class="unit" id="unit" aria-label="Switch weight unit"></button></header>
+<div class="tabs" role="tablist">
+<button role="tab" data-t="work" aria-selected="true">Workout</button>
+<button role="tab" data-t="plan" aria-selected="false">Routines</button>
+<button role="tab" data-t="prog" aria-selected="false">Progress</button>
+<button role="tab" data-t="hist" aria-selected="false">History</button>
+<button role="tab" data-t="runs" aria-selected="false">Runs</button>
+</div>
+<section id="work"><div class="rts" id="rts"></div><div id="wbody"></div></section>
+<section id="plan" hidden><div id="rbody"></div></section>
+<section id="prog" hidden><label for="pex">Exercise</label><select id="pex"></select><div id="pbody"></div></section>
+<section id="hist" hidden><div id="hbody"></div></section>
+<section id="runs" hidden>
+<div class="panel">
+<label for="rd" style="margin-top:0">Date</label><input type="date" id="rd">
+<label for="rdist">Distance (miles)</label><input type="number" id="rdist" inputmode="decimal" step="any" min="0" placeholder="3.1">
+<div class="g3"><div><label for="rh">Hours</label><input type="number" id="rh" inputmode="numeric" min="0" placeholder="0"></div><div><label for="rm">Minutes</label><input type="number" id="rm" inputmode="numeric" min="0" placeholder="0"></div><div><label for="rs">Seconds</label><input type="number" id="rs" inputmode="numeric" min="0" placeholder="0"></div></div>
+<p id="rprev" class="tgt" style="margin:12px 0 0"></p>
+<button class="lg" id="radd" style="width:100%;margin-top:10px;padding:14px">Add run</button>
+</div>
+<div id="rlist" style="margin-top:14px"></div>
+</section>
+</main>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+const K='liftlog.v1';
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+let S={unit:'lb',routines:[],log:[],cur:null};
+try{const p=JSON.parse(localStorage.getItem(K)||'null');if(p){S=Object.assign(S,p);if(Array.isArray(p.sets)){S.log=S.log.concat(p.sets.map(s=>Object.assign({},s,{rid:null})));delete S.sets}}}catch(e){}
+if(S.unit!=='kg')S.unit='lb';
+if(!Array.isArray(S.runs))S.runs=[];
+if(!S.routines.length)S.routines=[1,2,3,4].map(i=>({id:uid(),name:'Routine '+i,ex:[]}));
+const persist=()=>{try{localStorage.setItem(K,JSON.stringify(S))}catch(e){}};
+const save=()=>{S.mod=Date.now();persist();sync.queue()};
+const SK='liftlog.pass';
+let pass='';try{pass=localStorage.getItem(SK)||''}catch(e){}
+const nowT=()=>new Date().toLocaleTimeString([],{hour:'numeric',minute:'2-digit'});
+const sync={msg:'',t:null,
+ st(m){this.msg=m;const el=document.getElementById('sst');if(el)el.textContent=m},
+ async call(m,b){const r=await fetch('/api/sync',{method:m,headers:{'x-passcode':pass,'Content-Type':'application/json'},body:b});if(r.status===401)throw new Error('auth');if(r.status===500||r.status===404)throw new Error('setup');if(!r.ok)throw new Error('http');return m==='GET'?r.json():null},
+ fail(e){this.st(e.message==='auth'?'Wrong passcode':e.message==='setup'?'Sync is not set up on this site':'Offline, will retry')},
+ queue(){if(!pass)return;clearTimeout(this.t);this.t=setTimeout(()=>this.push(),1200)},
+ async push(){try{await this.call('PUT',JSON.stringify(S));this.st('Synced '+nowT())}catch(e){this.fail(e)}},
+ async pull(){if(!pass)return;
+  try{const d=await this.call('GET');
+   if(d&&(d.mod||0)>(S.mod||0)){S=Object.assign({unit:'lb',routines:[],log:[],runs:[],cur:null},d);if(!S.routines.length)S.routines=[{id:uid(),name:'Routine 1',ex:[]}];if(!byId(S.cur))S.cur=S.routines[0].id;persist();render();this.st('Synced '+nowT())}
+   else if((!d&&S.mod)||(d&&(d.mod||0)<(S.mod||0)))await this.push();
+   else this.st('Synced '+nowT())}catch(e){this.fail(e)}}};
+const $=s=>document.querySelector(s);
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const cv=s=>s.u===S.unit||!s.u?s.w:(s.u==='lb'?s.w*0.45359237:s.w/0.45359237);
+const fmt=n=>{const x=Math.round(n*10)/10;return Number.isInteger(x)?String(x):x.toFixed(1)};
+const e1=s=>cv(s)*(1+s.r/30);
+const dkey=t=>{const d=new Date(t);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
+const byId=id=>S.routines.find(r=>r.id===id);
+if(!byId(S.cur))S.cur=S.routines[0].id;
+let tab='work',pex='';
+
+function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('on');clearTimeout(toast.h);toast.h=setTimeout(()=>t.classList.remove('on'),2200)}
+function snap(x){const s={t:Date.now(),sets:x.sets,reps:x.reps,w:x.w,u:x.u,machine:x.machine||''};const h=x.hist=x.hist||[],l=h[h.length-1];
+  if(!l||l.sets!==s.sets||l.reps!==s.reps||Math.abs(cv(l)-cv(s))>0.05||l.machine!==s.machine)h.push(s)}
+function setField(x,f,v){
+  if(f==='name'||f==='machine')x[f]=v.trim();
+  else if(f==='w'){x.w=Math.max(0,parseFloat(v)||0);x.u=S.unit}
+  else x[f]=Math.max(1,parseInt(v,10)||1);
+  snap(x);
+}
+
+function setTab(t){tab=t;
+  document.querySelectorAll('.tabs button').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.t===t)));
+  ['work','plan','prog','hist','runs'].forEach(id=>$('#'+id).hidden=id!==t);render()}
+
+function lastDone(rid){const l=S.log.filter(s=>s.rid===rid);if(!l.length)return '';return ' ('+new Date(Math.max(...l.map(s=>s.t))).toLocaleDateString(undefined,{month:'short',day:'numeric'})+')'}
+function renderWork(){
+  $('#rts').innerHTML=S.routines.map(r=>'<button data-rt="'+r.id+'" aria-pressed="'+(r.id===S.cur)+'">'+esc(r.name)+lastDone(r.id)+'</button>').join('');
+  const r=byId(S.cur),today=dkey(Date.now());
+  if(!r.ex.length){$('#wbody').innerHTML='<p class="empty">No exercises in this routine yet. Add them under Routines, with sets, reps, weight and machine settings.</p>';return}
+  $('#wbody').innerHTML=r.ex.map(e=>{
+    const done=S.log.filter(l=>l.eid===e.id&&dkey(l.t)===today),last=done[done.length-1];
+    const w0=last?fmt(cv(last)):fmt(cv(e)),r0=last?last.r:e.reps;
+    let rows=done.map((s,i)=>'<div class="set"><span class="n">✓</span><span class="v">'+(s.n||1)+' × '+s.r+' at '+fmt(cv(s))+' '+S.unit+'</span>'+(s.pr?'<span class="badge">PR</span>':'')+'<button class="x" data-del="'+s.id+'" aria-label="Undo completion">Undo</button></div>').join('');
+    const left=done.length?0:1;
+    for(let i=0;i<left;i++)rows+='<div class="set" data-e="'+e.id+'"><input class="sw" type="number" inputmode="decimal" step="any" value="'+w0+'" aria-label="Weight"><span>×</span><input class="sr" type="number" inputmode="numeric" value="'+r0+'" aria-label="Reps"><button class="lg">Mark done</button></div>';
+    return '<div class="panel"><h3>'+esc(e.name||'Untitled exercise')+'</h3><div class="tgt">Target '+e.sets+' × '+e.reps+' at '+fmt(cv(e))+' '+S.unit+'</div>'+(e.machine?'<span class="pill">'+esc(e.machine)+'</span>':'')+rows+(last?'<button class="lnk" data-adopt="'+e.id+'">Use today’s numbers as new target</button>':'')+'</div>';
+  }).join('');
+}
+
+function exEditor(r,e,i){
+  const d='data-r="'+r.id+'" data-e="'+e.id+'"';
+  const h=(e.hist||[]).slice(-5).reverse().map(s=>'<p>'+new Date(s.t).toLocaleDateString(undefined,{month:'short',day:'numeric'})+': '+s.sets+' × '+s.reps+' at '+fmt(cv(s))+' '+S.unit+(s.machine?', '+esc(s.machine):'')+'</p>').join('');
+  return '<div class="xc"><label style="margin-top:0">Exercise</label><input type="text" '+d+' data-f="name" value="'+esc(e.name)+'" placeholder="Leg press">'+
+  '<div class="g3"><div><label>Sets</label><input type="number" inputmode="numeric" '+d+' data-f="sets" value="'+e.sets+'"></div><div><label>Reps</label><input type="number" inputmode="numeric" '+d+' data-f="reps" value="'+e.reps+'"></div><div><label>Weight ('+S.unit+')</label><input type="number" inputmode="decimal" step="any" '+d+' data-f="w" value="'+fmt(cv(e))+'"></div></div>'+
+  '<label>Machine settings</label><input type="text" '+d+' data-f="machine" value="'+esc(e.machine)+'" placeholder="Pin 7, seat 4, back pad 2">'+
+  '<div class="acts"><button class="lnk" data-mv="-1" '+d+'>Move up</button><button class="lnk" data-mv="1" '+d+'>Move down</button><button class="x" data-rm="1" '+d+'>Remove</button></div>'+
+  (h?'<details><summary>Target history</summary>'+h+'</details>':'')+'</div>';
+}
+function renderPlan(){
+  $('#rbody').innerHTML=S.routines.map(r=>'<div class="panel"><label style="margin-top:0">Routine name</label><input type="text" data-r="'+r.id+'" data-f="rname" value="'+esc(r.name)+'">'+r.ex.map((e,i)=>exEditor(r,e,i)).join('')+'<button class="add" data-addex="'+r.id+'">Add exercise</button></div>').join('')+'<button class="add" id="addr">Add routine</button><div class="panel" style="margin-top:14px"><h3>Sync</h3><p class="empty" style="font-size:14px;margin:4px 0 8px">Enter the passcode you set in Netlify to keep your phone and computer in step.</p><input type="password" id="sp" autocomplete="off" aria-label="Passcode" placeholder="Passcode" value="'+esc(pass)+'"><div class="acts"><button class="lnk" data-sync="on">Connect</button><button class="lnk" data-sync="off">Disconnect</button></div><p class="empty" id="sst" style="font-size:14px;margin:6px 0 0">'+esc(sync.msg||(pass?'Connected':'Not connected'))+'</p></div><div class="panel" style="margin-top:14px"><h3>Backup</h3><p class="empty" style="font-size:14px;margin:4px 0 8px">Export puts all your routines and logs into the box as text. To restore or move to a new phone, paste that text here and tap Import. Import replaces everything on this device.</p><textarea id="bk" rows="4" aria-label="Backup text" placeholder="Paste backup text here"></textarea><div class="acts"><button class="lnk" data-bk="export">Export</button><button class="lnk" data-bk="import">Import</button></div></div>';
+}
+
+function renderProg(){
+  const ns=[...new Set(S.log.map(s=>s.ex))].sort((a,b)=>a.localeCompare(b)),sel=$('#pex');
+  if(!ns.length){sel.innerHTML='';$('#pbody').innerHTML='<p class="empty" style="margin-top:14px">Log a set to see progress for that lift.</p>';return}
+  if(!ns.includes(pex))pex=ns[0];
+  sel.innerHTML=ns.map(n=>'<option'+(n===pex?' selected':'')+'>'+esc(n)+'</option>').join('');
+  const ss=S.log.filter(s=>s.ex===pex);
+  const days={};ss.forEach(s=>{const k=dkey(s.t);days[k]=Math.max(days[k]||0,e1(s))});
+  const ks=Object.keys(days).sort(),vals=ks.map(k=>days[k]);
+  let chart='<p class="empty">Log this lift on two different days to see a trend.</p>';
+  if(ks.length>1){const lo=Math.min(...vals),hi=Math.max(...vals),rg=hi-lo||1,X=i=>30+i*(280/(ks.length-1)),Y=v=>130-((v-lo)/rg)*100;
+    chart='<svg viewBox="0 0 320 160" role="img" aria-label="Estimated one-rep max by day"><line x1="30" y1="130" x2="310" y2="130" stroke="var(--line)"/><polyline points="'+vals.map((v,i)=>X(i).toFixed(1)+','+Y(v).toFixed(1)).join(' ')+'" fill="none" stroke="var(--acc)" stroke-width="3" stroke-linejoin="round"/>'+vals.map((v,i)=>'<circle cx="'+X(i).toFixed(1)+'" cy="'+Y(v).toFixed(1)+'" r="4" fill="var(--acc)"/>').join('')+'<text x="4" y="34" font-size="11" fill="var(--mute)">'+fmt(hi)+'</text><text x="4" y="134" font-size="11" fill="var(--mute)">'+fmt(lo)+'</text><text x="30" y="152" font-size="11" fill="var(--mute)">'+ks[0].slice(5)+'</text><text x="310" y="152" font-size="11" text-anchor="end" fill="var(--mute)">'+ks[ks.length-1].slice(5)+'</text></svg>'}
+  $('#pbody').innerHTML='<div class="stats"><div class="stat"><b>'+fmt(Math.max(...ss.map(cv)))+'</b><span>Heaviest ('+S.unit+')</span></div><div class="stat"><b>'+fmt(Math.max(...ss.map(e1)))+'</b><span>Est. 1RM ('+S.unit+')</span></div><div class="stat"><b>'+Math.round(ss.reduce((a,s)=>a+cv(s)*s.r*(s.n||1),0)).toLocaleString()+'</b><span>Total volume</span></div></div><div class="panel">'+chart+'</div><p class="empty" style="font-size:13px">Estimated 1RM uses weight × (1 + reps ÷ 30). The chart shows your best each day.</p>';
+}
+
+function renderHist(){
+  if(!S.log.length){$('#hbody').innerHTML='<p class="empty">Nothing logged yet. Your workouts will show up here by day.</p>';return}
+  const days={};S.log.forEach(s=>(days[dkey(s.t)]=days[dkey(s.t)]||[]).push(s));
+  $('#hbody').innerHTML=Object.keys(days).sort().reverse().map(k=>{
+    const ss=days[k],vol=ss.reduce((a,s)=>a+cv(s)*s.r*(s.n||1),0),g={};ss.forEach(s=>(g[s.ex]=g[s.ex]||[]).push(s));
+    const rn=[...new Set(ss.map(s=>byId(s.rid)&&byId(s.rid).name).filter(Boolean))].join(', ');
+    return '<div class="panel day"><h3>'+new Date(ss[0].t).toLocaleDateString(undefined,{weekday:'long',month:'short',day:'numeric'})+(rn?', '+esc(rn):'')+'</h3><small>'+ss.reduce((a,s)=>a+(s.n||1),0)+' sets, '+Math.round(vol).toLocaleString()+' '+S.unit+' volume</small>'+
+    Object.keys(g).map(n=>{const m=g[n][0].machine;return '<p class="ex"><b>'+esc(n)+'</b>'+(m?' ('+esc(m)+')':'')+'<br>'+g[n].map(s=>(s.n>1?s.n+' × '+s.r+' at '+fmt(cv(s)):fmt(cv(s))+' × '+s.r)+(s.pr?' (PR)':'')).join(', ')+'</p>'}).join('')+'</div>';
+  }).join('');
+}
+
+const f2=n=>String(Math.round(n*100)/100);
+const mph=(d,s)=>s>0?d/(s/3600):0;
+const pad=n=>String(n).padStart(2,'0');
+const hms=s=>{s=Math.round(s);const h=Math.floor(s/3600),m=Math.floor(s%3600/60),c=s%60;return h?h+':'+pad(m)+':'+pad(c):m+':'+pad(c)};
+const secOf=()=>(+$('#rh').value||0)*3600+(+$('#rm').value||0)*60+(+$('#rs').value||0);
+function runPrev(){const d=parseFloat($('#rdist').value),s=secOf();$('#rprev').textContent=d>0&&s>0?mph(d,s).toFixed(2)+' mph, '+hms(s/d)+' per mile':'Enter distance and time to see mph.'}
+function renderRuns(){
+  if(!$('#rd').value)$('#rd').value=dkey(Date.now());
+  runPrev();
+  const R=S.runs.slice().sort((a,b)=>b.t-a.t);
+  if(!R.length){$('#rlist').innerHTML='<p class="empty">No runs yet. Add your first run above.</p>';return}
+  const td=R.reduce((a,r)=>a+r.d,0),ts=R.reduce((a,r)=>a+r.s,0),best=Math.max(...R.map(r=>mph(r.d,r.s)));
+  $('#rlist').innerHTML='<div class="stats"><div class="stat"><b>'+f2(td)+'</b><span>Total miles</span></div><div class="stat"><b>'+mph(td,ts).toFixed(2)+'</b><span>Average mph</span></div><div class="stat"><b>'+best.toFixed(2)+'</b><span>Best mph</span></div></div>'+R.map(r=>'<div class="panel" style="display:flex;align-items:center;gap:8px"><div style="flex:1"><h3>'+new Date(r.t).toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'})+'</h3><div class="tgt" style="margin:2px 0 0">'+mph(r.d,r.s).toFixed(2)+' mph</div><small style="color:var(--mute)">'+f2(r.d)+' mi in '+hms(r.s)+', '+hms(r.s/r.d)+' per mile</small></div><button class="x" data-rdel="'+r.id+'" aria-label="Delete run">Delete</button></div>').join('');
+}
+$('#runs').addEventListener('input',e=>{if(e.target.id!=='rd')runPrev()});
+$('#runs').addEventListener('click',e=>{
+  const t=e.target;
+  if(t.dataset.rdel){S.runs=S.runs.filter(r=>r.id!==t.dataset.rdel);save();renderRuns();toast('Run deleted');return}
+  if(t.id==='radd'){
+    const d=parseFloat($('#rdist').value),s=secOf();
+    if(!(d>0)){toast('Enter a distance in miles');return}
+    if(!(s>0)){toast('Enter a time');return}
+    const p=($('#rd').value||dkey(Date.now())).split('-').map(Number);
+    S.runs.push({id:uid(),t:new Date(p[0],p[1]-1,p[2],12).getTime(),d:d,s:s});
+    ['rdist','rh','rm','rs'].forEach(i=>$('#'+i).value='');
+    save();renderRuns();toast('Run added');
+  }
+});
+function syncBtn(m){
+  if(m==='off'){pass='';try{localStorage.removeItem(SK)}catch(e){}sync.st('Sync is off');return}
+  const v=$('#sp').value.trim();if(!v){toast('Enter the passcode');return}
+  pass=v;try{localStorage.setItem(SK,pass)}catch(e){}
+  sync.st('Connecting...');sync.pull();
+}
+function backup(m){
+  const ta=$('#bk');
+  if(m==='export'){ta.value=JSON.stringify({app:'liftlog',v:2,data:S});ta.select();
+    try{navigator.clipboard.writeText(ta.value).then(()=>toast('Copied to clipboard'),()=>toast('Select the text and copy it'))}catch(e){toast('Select the text and copy it')}return}
+  try{const p=JSON.parse(ta.value.trim()),d=p&&p.data;
+    if(!d||!Array.isArray(d.routines)||!Array.isArray(d.log)||!d.routines.length)throw 0;
+    S={unit:d.unit==='kg'?'kg':'lb',routines:d.routines,log:d.log,cur:d.cur,runs:Array.isArray(d.runs)?d.runs:[]};
+    if(!byId(S.cur))S.cur=S.routines[0].id;
+    save();render();toast('Backup imported');
+  }catch(e){toast('That text is not a valid backup')}
+}
+function render(){$('#unit').textContent=S.unit;({work:renderWork,plan:renderPlan,prog:renderProg,hist:renderHist,runs:renderRuns})[tab]()}
+
+document.querySelectorAll('.tabs button').forEach(b=>b.addEventListener('click',()=>setTab(b.dataset.t)));
+$('#pex').addEventListener('change',e=>{pex=e.target.value;renderProg()});
+$('#unit').addEventListener('click',()=>{S.unit=S.unit==='lb'?'kg':'lb';save();render()});
+
+$('#work').addEventListener('click',e=>{
+  const t=e.target,d=t.dataset,r=byId(S.cur);
+  if(d.rt){S.cur=d.rt;save();render();return}
+  if(d.del){S.log=S.log.filter(s=>s.id!==d.del);save();render();toast('Set deleted');return}
+  if(d.adopt){const x=r.ex.find(q=>q.id===d.adopt),l=S.log.filter(s=>s.eid===x.id&&dkey(s.t)===dkey(Date.now())).pop();
+    if(l){x.w=l.w;x.u=l.u;x.reps=l.r;snap(x);save();render();toast('Target updated')}return}
+  if(t.classList.contains('lg')){
+    const row=t.closest('.set'),x=r.ex.find(q=>q.id===row.dataset.e);
+    const w=parseFloat(row.querySelector('.sw').value),rp=parseInt(row.querySelector('.sr').value,10);
+    if(!(w>=0)||!(rp>=1)){toast('Enter weight and at least 1 rep');return}
+    const ns={id:uid(),t:Date.now(),rid:r.id,eid:x.id,ex:x.name,n:x.sets,w:w,r:rp,u:S.unit,machine:x.machine||''};
+    const prev=S.log.filter(s=>s.ex===x.name),best=prev.reduce((m,s)=>Math.max(m,e1(s)),0);
+    if(prev.length&&e1(ns)>best+0.001){ns.pr=true;toast('New personal best')}else toast('Exercise done');
+    S.log.push(ns);save();render();
+  }
+});
+
+$('#rbody').addEventListener('change',e=>{
+  const t=e.target,d=t.dataset;if(!d.f)return;
+  const r=byId(d.r);
+  if(d.f==='rname')r.name=t.value.trim()||r.name;else setField(r.ex.find(q=>q.id===d.e),d.f,t.value);
+  save();
+});
+$('#rbody').addEventListener('click',e=>{
+  const t=e.target,d=t.dataset;
+  if(d.sync){syncBtn(d.sync);return}
+  if(d.bk){backup(d.bk);return}
+  if(t.id==='addr'){S.routines.push({id:uid(),name:'Routine '+(S.routines.length+1),ex:[]})}
+  else if(d.addex){const x={id:uid(),name:'',sets:3,reps:10,w:0,u:S.unit,machine:''};snap(x);byId(d.addex).ex.push(x)}
+  else if(d.rm||d.mv){const r=byId(d.r),i=r.ex.findIndex(q=>q.id===d.e);
+    if(d.rm)r.ex.splice(i,1);else{const j=i+ +d.mv;if(j<0||j>=r.ex.length)return;[r.ex[i],r.ex[j]]=[r.ex[j],r.ex[i]]}}
+  else return;
+  save();renderPlan();
+});
+render();sync.pull();
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')sync.pull()});
+</script>
+</body>
+</html>
