@@ -67,6 +67,10 @@ svg{width:100%;height:auto;display:block}
 #rbody>.panel:nth-last-child(-n+2),#rbody>#addr{margin-top:0!important}
 svg{max-height:60vh}
 @media (min-width:900px){#runs{display:grid;grid-template-columns:minmax(300px,380px) 1fr;gap:16px;align-items:start}#runs>#rlist{margin-top:0!important}}
+.rd{margin-top:0;font-size:inherit;color:inherit}
+.rd>summary{cursor:pointer;font:600 22px/1.2 "Barlow Condensed","Arial Narrow",sans-serif;padding:6px 0}
+.rd[open]>summary{margin-bottom:8px}
+.rd>summary small{font:400 14px/1 Barlow,system-ui,sans-serif;color:var(--mute)}
 .toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:999px;font-weight:600;opacity:0;pointer-events:none;transition:opacity .2s}
 .toast.on{opacity:1}
 [hidden]{display:none!important}
@@ -134,7 +138,7 @@ const e1=s=>cv(s)*(1+s.r/30);
 const dkey=t=>{const d=new Date(t);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
 const byId=id=>S.routines.find(r=>r.id===id);
 if(!byId(S.cur))S.cur=S.routines[0].id;
-let tab='work',pex='';
+let tab='work',pex='';const openR=new Set();
 
 function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('on');clearTimeout(toast.h);toast.h=setTimeout(()=>t.classList.remove('on'),2200)}
 function snap(x){const s={t:Date.now(),sets:x.sets,reps:x.reps,w:x.w,u:x.u,machine:x.machine||''};const h=x.hist=x.hist||[],l=h[h.length-1];
@@ -184,7 +188,7 @@ function exEditor(r,e,i){
   (h?'<details><summary>Target history</summary>'+h+'</details>':'')+'</div>';
 }
 function renderPlan(){
-  $('#rbody').innerHTML=S.routines.map(r=>'<div class="panel"><label style="margin-top:0">Routine name</label><input type="text" data-r="'+r.id+'" data-f="rname" value="'+esc(r.name)+'">'+r.ex.map((e,i)=>exEditor(r,e,i)).join('')+'<button class="add" data-addex="'+r.id+'">Add exercise</button></div>').join('')+'<button class="add" id="addr">Add routine</button><div class="panel" style="margin-top:14px"><h3>Sync</h3><p class="empty" style="font-size:14px;margin:4px 0 8px">Enter the passcode you set in Netlify to keep your phone and computer in step.</p><input type="password" id="sp" autocomplete="off" aria-label="Passcode" placeholder="Passcode" value="'+esc(pass)+'"><div class="acts"><button class="lnk" data-sync="on">Connect</button><button class="lnk" data-sync="off">Disconnect</button></div><p class="empty" id="sst" style="font-size:14px;margin:6px 0 0">'+esc(sync.msg||(pass?'Connected':'Not connected'))+'</p></div><div class="panel" style="margin-top:14px"><h3>Backup</h3><p class="empty" style="font-size:14px;margin:4px 0 8px">Export puts all your routines and logs into the box as text. To restore or move to a new phone, paste that text here and tap Import. Import replaces everything on this device.</p><textarea id="bk" rows="4" aria-label="Backup text" placeholder="Paste backup text here"></textarea><div class="acts"><button class="lnk" data-bk="export">Export</button><button class="lnk" data-bk="import">Import</button></div></div>';
+  $('#rbody').innerHTML=S.routines.map(r=>'<details class="panel rd" data-rd="'+r.id+'"'+(openR.has(r.id)?' open':'')+'><summary>'+esc(r.name)+' <small>('+r.ex.length+' exercise'+(r.ex.length===1?'':'s')+')</small></summary><label style="margin-top:0">Routine name</label><input type="text" data-r="'+r.id+'" data-f="rname" value="'+esc(r.name)+'">'+r.ex.map((e,i)=>exEditor(r,e,i)).join('')+'<button class="add" data-addex="'+r.id+'">Add exercise</button></details>').join('')+'<button class="add" id="addr">Add routine</button><details class="panel rd"><summary>Sync</summary><p class="empty" style="font-size:14px;margin:4px 0 8px">Enter the passcode you set in Netlify to keep your phone and computer in step.</p><input type="password" id="sp" autocomplete="off" aria-label="Passcode" placeholder="Passcode" value="'+esc(pass)+'"><div class="acts"><button class="lnk" data-sync="on">Connect</button><button class="lnk" data-sync="off">Disconnect</button></div><p class="empty" id="sst" style="font-size:14px;margin:6px 0 0">'+esc(sync.msg||(pass?'Connected':'Not connected'))+'</p></details><details class="panel rd"><summary>Backup</summary><p class="empty" style="font-size:14px;margin:4px 0 8px">Export puts all your routines and logs into the box as text. To restore or move to a new phone, paste that text here and tap Import. Import replaces everything on this device.</p><textarea id="bk" rows="4" aria-label="Backup text" placeholder="Paste backup text here"></textarea><div class="acts"><button class="lnk" data-bk="export">Export</button><button class="lnk" data-bk="import">Import</button></div></details>';
 }
 
 function renderProg(){
@@ -217,7 +221,7 @@ function renderHist(){
     const rn=rids.map(r=>r.name).join(', ');
     const date=new Date(ss.length?ss[0].t:rs[0].t).toLocaleDateString(undefined,{weekday:'long',month:'short',day:'numeric'});
     return '<div class="panel day"><h3>'+date+(rn?', '+esc(rn):'')+'</h3><small>'+sub.join('; ')+'</small>'+
-      Object.keys(g).map(n=>{const m=g[n][0].machine;return '<p class="ex"><b>'+esc(n)+'</b>'+(m?' ('+esc(m)+')':'')+'<br>'+g[n].map(s=>(s.n>1?s.n+' \u00d7 '+s.r+' at '+fmt(cv(s)):fmt(cv(s))+' \u00d7 '+s.r)+(s.pr?' (PR)':'')).join(', ')+'</p>'}).join('')+
+      Object.keys(g).map(n=>{const m=g[n][0].machine;return '<p class="ex"><b>'+esc(n)+'</b>'+(m?' ('+esc(m)+')':'')+'<br>'+g[n].map(s=>{const k=s.n||1,w=cv(s);return k+' × '+s.r+(w>0.0001?' at '+fmt(w)+' '+S.unit:'')+(s.pr?' (PR)':'')}).join(', ')+'</p>'}).join('')+
       rs.map(r=>'<p class="ex"><b>Run</b><br>'+f2(r.d)+' mi in '+hms(r.s)+', '+mph(r.d,r.s).toFixed(2)+' mph, '+hms(r.s/r.d)+' per mile</p>').join('')+'</div>';
   }).join('');
 }
@@ -290,6 +294,7 @@ $('#work').addEventListener('click',e=>{
   }
 });
 
+$('#rbody').addEventListener('toggle',e=>{const id=e.target.dataset&&e.target.dataset.rd;if(!id)return;e.target.open?openR.add(id):openR.delete(id)},true);
 $('#rbody').addEventListener('change',e=>{
   const t=e.target,d=t.dataset;if(!d.f)return;
   const r=byId(d.r);
@@ -300,7 +305,7 @@ $('#rbody').addEventListener('click',e=>{
   const t=e.target,d=t.dataset;
   if(d.sync){syncBtn(d.sync);return}
   if(d.bk){backup(d.bk);return}
-  if(t.id==='addr'){S.routines.push({id:uid(),name:'Routine '+(S.routines.length+1),ex:[]})}
+  if(t.id==='addr'){const nid=uid();openR.add(nid);S.routines.push({id:nid,name:'Routine '+(S.routines.length+1),ex:[]})}
   else if(d.addex){const x={id:uid(),name:'',sets:3,reps:10,w:0,u:S.unit,machine:''};snap(x);byId(d.addex).ex.push(x)}
   else if(d.rm||d.mv){const r=byId(d.r),i=r.ex.findIndex(q=>q.id===d.e);
     if(d.rm)r.ex.splice(i,1);else{const j=i+ +d.mv;if(j<0||j>=r.ex.length)return;[r.ex[i],r.ex[j]]=[r.ex[j],r.ex[i]]}}
