@@ -71,6 +71,7 @@ svg{max-height:60vh}
 .rd>summary{cursor:pointer;font:600 22px/1.2 "Barlow Condensed","Arial Narrow",sans-serif;padding:6px 0}
 .rd[open]>summary{margin-bottom:8px}
 .rd>summary small{font:400 14px/1 Barlow,system-ui,sans-serif;color:var(--mute)}
+.day>summary small{display:block;margin-top:2px}
 .toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:999px;font-weight:600;opacity:0;pointer-events:none;transition:opacity .2s}
 .toast.on{opacity:1}
 [hidden]{display:none!important}
@@ -81,11 +82,11 @@ svg{max-height:60vh}
 <main>
 <header><h1>Lift Log</h1><button class="unit" id="unit" aria-label="Switch weight unit"></button></header>
 <div class="tabs" role="tablist">
-<button role="tab" data-t="work" aria-selected="true">Workout</button>
+<button role="tab" data-t="work" aria-selected="true">Lifts</button>
+<button role="tab" data-t="runs" aria-selected="false">Runs</button>
 <button role="tab" data-t="plan" aria-selected="false">Routines</button>
 <button role="tab" data-t="prog" aria-selected="false">Progress</button>
 <button role="tab" data-t="hist" aria-selected="false">History</button>
-<button role="tab" data-t="runs" aria-selected="false">Runs</button>
 </div>
 <section id="work"><div class="rts" id="rts"></div><div id="wbody"></div></section>
 <section id="plan" hidden><div id="rbody"></div></section>
@@ -138,7 +139,7 @@ const e1=s=>cv(s)*(1+s.r/30);
 const dkey=t=>{const d=new Date(t);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
 const byId=id=>S.routines.find(r=>r.id===id);
 if(!byId(S.cur))S.cur=S.routines[0].id;
-let tab='work',pex='';const openR=new Set();
+let tab='work',pex='';const openR=new Set(),hs={};
 
 function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('on');clearTimeout(toast.h);toast.h=setTimeout(()=>t.classList.remove('on'),2200)}
 function snap(x){const s={t:Date.now(),sets:x.sets,reps:x.reps,w:x.w,u:x.u,machine:x.machine||''};const h=x.hist=x.hist||[],l=h[h.length-1];
@@ -160,27 +161,27 @@ function owed(r){
   if(!prev.length)return new Set();
   const last=prev[prev.length-1],p=last.split('-').map(Number),end=new Date(p[0],p[1]-1,p[2]+1).getTime();
   const did=new Set(L.filter(l=>dkey(l.t)===last).map(l=>l.eid));
-  return new Set(r.ex.filter(e=>!did.has(e.id)&&e.hist&&e.hist[0]&&e.hist[0].t<end&&!L.some(l=>l.eid===e.id&&dkey(l.t)===today)).map(e=>e.id));
+  return new Set(r.ex.filter(e=>e.w>0&&!did.has(e.id)&&e.hist&&e.hist[0]&&e.hist[0].t<end&&!L.some(l=>l.eid===e.id&&dkey(l.t)===today)).map(e=>e.id));
 }
 function lastDone(rid){const l=S.log.filter(s=>s.rid===rid);if(!l.length)return '';return ' ('+new Date(Math.max(...l.map(s=>s.t))).toLocaleDateString(undefined,{month:'short',day:'numeric'})+')'}
 function renderWork(){
-  $('#rts').innerHTML=S.routines.map(r=>'<button data-rt="'+r.id+'" aria-pressed="'+(r.id===S.cur)+'">'+esc(r.name)+lastDone(r.id)+'</button>').join('');
+  $('#rts').innerHTML=S.routines.map((r,i)=>({r,i,t:Math.max(0,...S.log.filter(l=>l.rid===r.id).map(l=>l.t))})).sort((a,b)=>a.t-b.t||a.i-b.i).map(o=>o.r).map(r=>'<button data-rt="'+r.id+'" aria-pressed="'+(r.id===S.cur)+'">'+esc(r.name)+lastDone(r.id)+'</button>').join('');
   const r=byId(S.cur),today=dkey(Date.now());
   if(!r.ex.length){$('#wbody').innerHTML='<p class="empty">No exercises in this routine yet. Add them under Routines, with sets, reps, weight and machine settings.</p>';return}
   const ow=owed(r);
   $('#wbody').innerHTML=r.ex.map(e=>{
     const done=S.log.filter(l=>l.eid===e.id&&dkey(l.t)===today),last=done[done.length-1];
     const w0=last?fmt(cv(last)):fmt(cv(e)),r0=last?last.r:e.reps;
-    let rows=done.map((s,i)=>'<div class="set"><span class="n">✓</span><span class="v">'+(s.n||1)+' × '+s.r+' at '+fmt(cv(s))+' '+S.unit+'</span>'+(s.pr?'<span class="badge">PR</span>':'')+'<button class="x" data-del="'+s.id+'" aria-label="Undo completion">Undo</button></div>').join('');
+    let rows=done.map((s,i)=>'<div class="set"><span class="n">✓</span><span class="v">'+(s.n||1)+' × '+s.r+(s.w>0?' at '+fmt(cv(s))+' '+S.unit:'')+'</span>'+(s.pr?'<span class="badge">PR</span>':'')+'<button class="x" data-del="'+s.id+'" aria-label="Undo completion">Undo</button></div>').join('');
     const left=done.length?0:1;
     for(let i=0;i<left;i++)rows+='<div class="set" data-e="'+e.id+'"><input class="sw" type="number" inputmode="decimal" step="any" value="'+w0+'" aria-label="Weight"><span>×</span><input class="sr" type="number" inputmode="numeric" value="'+r0+'" aria-label="Reps"><button class="lg">Mark done</button></div>';
-    return '<div class="panel'+(ow.has(e.id)?' flag':'')+'"><h3'+(ow.has(e.id)?' class="skip"':'')+'>'+esc(e.name||'Untitled exercise')+(ow.has(e.id)?' (skipped last time)':'')+'</h3><div class="tgt">Target '+e.sets+' × '+e.reps+' at '+fmt(cv(e))+' '+S.unit+'</div>'+(e.machine?'<span class="pill">'+esc(e.machine)+'</span>':'')+rows+(last?'<button class="lnk" data-adopt="'+e.id+'">Use today’s numbers as new target</button>':'')+'</div>';
+    return '<div class="panel'+(ow.has(e.id)?' flag':'')+'"><h3'+(ow.has(e.id)?' class="skip"':'')+'>'+esc(e.name||'Untitled exercise')+(ow.has(e.id)?' (skipped last time)':'')+'</h3><div class="tgt">Target '+e.sets+' × '+e.reps+(e.w>0?' at '+fmt(cv(e))+' '+S.unit:'')+'</div>'+(e.machine?'<span class="pill">'+esc(e.machine)+'</span>':'')+rows+(last?'<button class="lnk" data-adopt="'+e.id+'">Use today’s numbers as new target</button>':'')+'</div>';
   }).join('');
 }
 
 function exEditor(r,e,i){
   const d='data-r="'+r.id+'" data-e="'+e.id+'"';
-  const h=(e.hist||[]).slice(-5).reverse().map(s=>'<p>'+new Date(s.t).toLocaleDateString(undefined,{month:'short',day:'numeric'})+': '+s.sets+' × '+s.reps+' at '+fmt(cv(s))+' '+S.unit+(s.machine?', '+esc(s.machine):'')+'</p>').join('');
+  const h=(e.hist||[]).slice(-5).reverse().map(s=>'<p>'+new Date(s.t).toLocaleDateString(undefined,{month:'short',day:'numeric'})+': '+s.sets+' × '+s.reps+(s.w>0?' at '+fmt(cv(s))+' '+S.unit:'')+(s.machine?', '+esc(s.machine):'')+'</p>').join('');
   return '<div class="xc"><label style="margin-top:0">Exercise</label><input type="text" '+d+' data-f="name" value="'+esc(e.name)+'" placeholder="Leg press">'+
   '<div class="g3"><div><label>Sets</label><input type="number" inputmode="numeric" '+d+' data-f="sets" value="'+e.sets+'"></div><div><label>Reps</label><input type="number" inputmode="numeric" '+d+' data-f="reps" value="'+e.reps+'"></div><div><label>Weight ('+S.unit+')</label><input type="number" inputmode="decimal" step="any" '+d+' data-f="w" value="'+fmt(cv(e))+'"></div></div>'+
   '<label>Machine settings</label><input type="text" '+d+' data-f="machine" value="'+esc(e.machine)+'" placeholder="Pin 7, seat 4, back pad 2">'+
@@ -211,7 +212,7 @@ function renderHist(){
   S.runs.forEach(r=>slot(dkey(r.t)).r.push(r));
   const keys=Object.keys(days).sort().reverse();
   if(!keys.length){$('#hbody').innerHTML='<p class="empty">Nothing logged yet. Your workouts and runs will show up here by day.</p>';return}
-  $('#hbody').innerHTML=keys.map(k=>{
+  $('#hbody').innerHTML=keys.map((k,i)=>{
     const ss=days[k].l,rs=days[k].r,g={};
     ss.forEach(s=>(g[s.ex]=g[s.ex]||[]).push(s));
     const rids=[...new Set(ss.map(s=>s.rid).filter(Boolean))].map(id=>byId(id)).filter(Boolean);
@@ -220,9 +221,9 @@ function renderHist(){
     if(rs.length)sub.push(f2(rs.reduce((a,r)=>a+r.d,0))+' mi run');
     const rn=rids.map(r=>r.name).join(', ');
     const date=new Date(ss.length?ss[0].t:rs[0].t).toLocaleDateString(undefined,{weekday:'long',month:'short',day:'numeric'});
-    return '<div class="panel day"><h3>'+date+(rn?', '+esc(rn):'')+'</h3><small>'+sub.join('; ')+'</small>'+
+    return '<details class="panel day rd" data-hd="'+k+'"'+((k in hs?hs[k]:i===0)?' open':'')+'><summary>'+date+(rn?', '+esc(rn):'')+'<small>'+sub.join('; ')+'</small></summary>'+
       Object.keys(g).map(n=>{const m=g[n][0].machine;return '<p class="ex"><b>'+esc(n)+'</b>'+(m?' ('+esc(m)+')':'')+'<br>'+g[n].map(s=>{const k=s.n||1,w=cv(s);return k+' × '+s.r+(w>0.0001?' at '+fmt(w)+' '+S.unit:'')+(s.pr?' (PR)':'')}).join(', ')+'</p>'}).join('')+
-      rs.map(r=>'<p class="ex"><b>Run</b><br>'+f2(r.d)+' mi in '+hms(r.s)+', '+mph(r.d,r.s).toFixed(2)+' mph, '+hms(r.s/r.d)+' per mile</p>').join('')+'</div>';
+      rs.map(r=>'<p class="ex"><b>Run</b><br>'+f2(r.d)+' mi in '+hms(r.s)+', '+mph(r.d,r.s).toFixed(2)+' mph, '+hms(r.s/r.d)+' per mile</p>').join('')+'</details>';
   }).join('');
 }
 
@@ -294,6 +295,7 @@ $('#work').addEventListener('click',e=>{
   }
 });
 
+$('#hbody').addEventListener('click',e=>{const sm=e.target.closest&&e.target.closest('summary');if(!sm)return;const d=sm.parentElement;if(d.dataset.hd)hs[d.dataset.hd]=!d.open});
 $('#rbody').addEventListener('toggle',e=>{const id=e.target.dataset&&e.target.dataset.rd;if(!id)return;e.target.open?openR.add(id):openR.delete(id)},true);
 $('#rbody').addEventListener('change',e=>{
   const t=e.target,d=t.dataset;if(!d.f)return;
