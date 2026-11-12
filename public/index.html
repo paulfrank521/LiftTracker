@@ -290,7 +290,7 @@ $('#work').addEventListener('click',e=>{
   if(d.adopt){const x=r.ex.find(q=>q.id===d.adopt),l=S.log.filter(s=>s.eid===x.id&&dkey(s.t)===dkey(Date.now())).pop();
     if(l){x.w=l.w;x.u=l.u;x.reps=l.r;snap(x);save();render();toast('Target updated')}return}
   if(t.classList.contains('lg')){
-    const row=t.closest('.set'),x=r.ex.find(q=>q.id===row.dataset.e);
+    const row=t.closest('.wrow'),x=r.ex.find(q=>q.id===row.dataset.e);
     const w=parseFloat(row.querySelector('.sw').value),rp=parseInt(row.querySelector('.sr').value,10);
     if(!(w>=0)||!(rp>=1)){toast('Enter weight and at least 1 rep');return}
     const ns={id:uid(),t:Date.now(),rid:r.id,eid:x.id,ex:x.name,n:x.sets,w:w,r:rp,u:S.unit,machine:x.machine||''};
