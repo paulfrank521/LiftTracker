@@ -39,6 +39,9 @@ textarea{width:100%;background:var(--bg);border:1px solid var(--line);border-rad
 .set .n{width:20px;color:var(--mute)}
 .set .v{font:600 22px/1 "Barlow Condensed","Arial Narrow",sans-serif;flex:1}
 .set input{width:76px;text-align:center;font:700 22px/1 "Barlow Condensed","Arial Narrow",sans-serif;padding:8px 2px}
+.exn{font-weight:700;font-size:15px}.exn.skip{color:var(--del)}
+.wrow{display:flex;align-items:center;gap:6px;padding:6px 0;border-top:1px solid var(--line);flex-wrap:wrap}
+.wrow .v{font:600 15px/1 "Barlow Condensed","Arial Narrow",sans-serif;flex:1}
 .lg{border:0;background:var(--acc);color:var(--accink);border-radius:10px;padding:11px 16px;font-weight:600;margin-left:auto}
 .badge{background:var(--prbg);color:var(--pr);font-size:12px;font-weight:600;border-radius:6px;padding:2px 8px}
 .x,.lnk{border:0;background:none;padding:8px 6px;font-size:14px;font-weight:600}
@@ -161,7 +164,9 @@ function owed(r){
   if(!prev.length)return new Set();
   const last=prev[prev.length-1],p=last.split('-').map(Number),end=new Date(p[0],p[1]-1,p[2]+1).getTime();
   const did=new Set(L.filter(l=>dkey(l.t)===last).map(l=>l.eid));
-  return new Set(r.ex.filter(e=>e.w>0&&!did.has(e.id)&&e.hist&&e.hist[0]&&e.hist[0].t<end&&!L.some(l=>l.eid===e.id&&dkey(l.t)===today)).map(e=>e.id));
+  const skipT=new Date(p[0],p[1]-1,p[2]+1).getTime();
+  const completedSince=new Set(L.filter(l=>l.t>=skipT).map(l=>l.eid));
+  return new Set(r.ex.filter(e=>e.w>0&&!did.has(e.id)&&!completedSince.has(e.id)&&e.hist&&e.hist[0]&&e.hist[0].t<end).map(e=>e.id));
 }
 function lastDone(rid){const l=S.log.filter(s=>s.rid===rid);if(!l.length)return '';return ' ('+new Date(Math.max(...l.map(s=>s.t))).toLocaleDateString(undefined,{month:'short',day:'numeric'})+')'}
 function renderWork(){
@@ -172,21 +177,21 @@ function renderWork(){
   $('#wbody').innerHTML=r.ex.map(e=>{
     const done=S.log.filter(l=>l.eid===e.id&&dkey(l.t)===today),last=done[done.length-1];
     const w0=last?fmt(cv(last)):fmt(cv(e)),r0=last?last.r:e.reps;
-    let rows=done.map((s,i)=>'<div class="set"><span class="n">✓</span><span class="v">'+(s.n||1)+' × '+s.r+(s.w>0?' at '+fmt(cv(s))+' '+S.unit:'')+'</span>'+(s.pr?'<span class="badge">PR</span>':'')+'<button class="x" data-del="'+s.id+'" aria-label="Undo completion">Undo</button></div>').join('');
-    const left=done.length?0:1;
-    for(let i=0;i<left;i++)rows+='<div class="set" data-e="'+e.id+'"><input class="sw" type="number" inputmode="decimal" step="any" value="'+w0+'" aria-label="Weight"><span>×</span><input class="sr" type="number" inputmode="numeric" value="'+r0+'" aria-label="Reps"><button class="lg">Mark done</button></div>';
-    return '<div class="panel'+(ow.has(e.id)?' flag':'')+'"><h3'+(ow.has(e.id)?' class="skip"':'')+'>'+esc(e.name||'Untitled exercise')+(ow.has(e.id)?' (skipped last time)':'')+'</h3><div class="tgt">Target '+e.sets+' × '+e.reps+(e.w>0?' at '+fmt(cv(e))+' '+S.unit:'')+'</div>'+(e.machine?'<span class="pill">'+esc(e.machine)+'</span>':'')+rows+(last?'<button class="lnk" data-adopt="'+e.id+'">Use today’s numbers as new target</button>':'')+'</div>';
+    const doneRow=done.length?’<div class="wrow done"><span class="v">✓ ‘+(done[0].n||1)+’ × ‘+done[0].r+(done[0].w>0?’ at ‘+fmt(cv(done[0]))+’ ‘+S.unit:’’)+’</span>’+(done[0].pr?’<span class="badge">PR</span>’:’’)+’<button class="x" data-del="’+done[0].id+’" aria-label="Undo" style="padding:4px 8px">Undo</button>’+(last?’<button class="lnk" data-adopt="’+e.id+’" style="padding:4px 6px;font-size:13px">Save as target</button>’:’’)+’</div>’:’’;
+    const inputRow=done.length?’’:’<div class="wrow" data-e="’+e.id+’"><input class="sw" type="number" inputmode="decimal" step="any" value="’+w0+’" aria-label="Weight" style="width:72px;padding:6px;text-align:center"><span style="color:var(--mute)">×</span><input class="sr" type="number" inputmode="numeric" value="’+r0+’" aria-label="Reps" style="width:56px;padding:6px;text-align:center"><button class="lg" style="padding:8px 14px;font-size:14px">Done</button></div>’;
+    const skip=ow.has(e.id);
+    const sub=(e.machine?’<span class="pill" style="font-size:12px;padding:1px 7px">’+esc(e.machine)+’</span> ‘:’’)+’<span style="font-size:13px;color:var(--mute)">’+e.sets+’ × ‘+e.reps+(e.w>0?’ · ‘+fmt(cv(e))+’ ‘+S.unit:’’)+’</span>’;
+    return ‘<div class="panel’+(skip?’ flag’:’’)+’" style="padding:10px 12px"><div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap"><span class="exn’+(skip?’ skip’:’’)+’">’+esc(e.name||’Untitled’)+(skip?’ <span style="font-size:12px;font-weight:400">(skipped)</span>’:’’)+’</span>’+sub+’</div>’+doneRow+inputRow+’</div>’;
   }).join('');
 }
 
 function exEditor(r,e,i){
   const d='data-r="'+r.id+'" data-e="'+e.id+'"';
   const h=(e.hist||[]).slice(-5).reverse().map(s=>'<p>'+new Date(s.t).toLocaleDateString(undefined,{month:'short',day:'numeric'})+': '+s.sets+' × '+s.reps+(s.w>0?' at '+fmt(cv(s))+' '+S.unit:'')+(s.machine?', '+esc(s.machine):'')+'</p>').join('');
-  return '<div class="xc"><label style="margin-top:0">Exercise</label><input type="text" '+d+' data-f="name" value="'+esc(e.name)+'" placeholder="Leg press">'+
-  '<div class="g3"><div><label>Sets</label><input type="number" inputmode="numeric" '+d+' data-f="sets" value="'+e.sets+'"></div><div><label>Reps</label><input type="number" inputmode="numeric" '+d+' data-f="reps" value="'+e.reps+'"></div><div><label>Weight ('+S.unit+')</label><input type="number" inputmode="decimal" step="any" '+d+' data-f="w" value="'+fmt(cv(e))+'"></div></div>'+
-  '<label>Machine settings</label><input type="text" '+d+' data-f="machine" value="'+esc(e.machine)+'" placeholder="Pin 7, seat 4, back pad 2">'+
-  '<div class="acts"><button class="lnk" data-mv="-1" '+d+'>Move up</button><button class="lnk" data-mv="1" '+d+'>Move down</button><button class="x" data-rm="1" '+d+'>Remove</button></div>'+
-  (h?'<details><summary>Target history</summary>'+h+'</details>':'')+'</div>';
+  return '<div class="xc"><div style="display:grid;grid-template-columns:1fr auto;gap:6px;align-items:center;margin-bottom:6px"><input type="text" '+d+' data-f="name" value="'+esc(e.name)+'" placeholder="Exercise name" aria-label="Exercise name" style="margin:0">'+
+  '<span style="display:flex;gap:2px;flex-shrink:0"><button class="lnk" data-mv="-1" '+d+' aria-label="Move up" style="padding:4px 8px">↑</button><button class="lnk" data-mv="1" '+d+' aria-label="Move down" style="padding:4px 8px">↓</button><button class="x" data-rm="1" '+d+' aria-label="Remove" style="padding:4px 8px">✕</button></span></div>'+
+  '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px"><div><label style="margin:0 0 2px;font-size:12px">Sets</label><input type="number" inputmode="numeric" '+d+' data-f="sets" value="'+e.sets+'" style="padding:6px"></div><div><label style="margin:0 0 2px;font-size:12px">Reps</label><input type="number" inputmode="numeric" '+d+' data-f="reps" value="'+e.reps+'" style="padding:6px"></div><div><label style="margin:0 0 2px;font-size:12px">Wt ('+S.unit+')</label><input type="number" inputmode="decimal" step="any" '+d+' data-f="w" value="'+fmt(cv(e))+'" style="padding:6px"></div><div><label style="margin:0 0 2px;font-size:12px">Machine</label><input type="text" '+d+' data-f="machine" value="'+esc(e.machine)+'" placeholder="Pin 7…" style="padding:6px"></div></div>'+
+  (h?'<details style="margin-top:4px"><summary style="font-size:12px">History</summary>'+h+'</details>':'')+'</div>';
 }
 function renderPlan(){
   $('#rbody').innerHTML=S.routines.map(r=>'<details class="panel rd" data-rd="'+r.id+'"'+(openR.has(r.id)?' open':'')+'><summary>'+esc(r.name)+' <small>('+r.ex.length+' exercise'+(r.ex.length===1?'':'s')+')</small></summary><label style="margin-top:0">Routine name</label><input type="text" data-r="'+r.id+'" data-f="rname" value="'+esc(r.name)+'">'+r.ex.map((e,i)=>exEditor(r,e,i)).join('')+'<button class="add" data-addex="'+r.id+'">Add exercise</button></details>').join('')+'<button class="add" id="addr">Add routine</button><details class="panel rd"><summary>Sync</summary><p class="empty" style="font-size:14px;margin:4px 0 8px">Enter the passcode you set in Netlify to keep your phone and computer in step.</p><input type="password" id="sp" autocomplete="off" aria-label="Passcode" placeholder="Passcode" value="'+esc(pass)+'"><div class="acts"><button class="lnk" data-sync="on">Connect</button><button class="lnk" data-sync="off">Disconnect</button></div><p class="empty" id="sst" style="font-size:14px;margin:6px 0 0">'+esc(sync.msg||(pass?'Connected':'Not connected'))+'</p></details><details class="panel rd"><summary>Backup</summary><p class="empty" style="font-size:14px;margin:4px 0 8px">Export puts all your routines and logs into the box as text. To restore or move to a new phone, paste that text here and tap Import. Import replaces everything on this device.</p><textarea id="bk" rows="4" aria-label="Backup text" placeholder="Paste backup text here"></textarea><div class="acts"><button class="lnk" data-bk="export">Export</button><button class="lnk" data-bk="import">Import</button></div></details>';
